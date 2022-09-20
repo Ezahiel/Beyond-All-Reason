@@ -5,7 +5,7 @@
 
 piece  base, turret, flare, barrel, sleeve, rfhip, rfthigh, rfleg, rffoot, lfhip, lfthigh, lfleg, lffoot, lbhip, lbthigh, lbleg, lbankle, rbhip, rbthigh, rbleg, rbankle, aimx1, aimy1;
 
-static-var  bMoving, bAiming, Static_Var_3,  oldHeading, bSteering, wpn1_lasthead, speedmult;
+static-var  bMoving, bAiming, oldHeading, bSteering, wpn1_lasthead, speedmult;
 
 // Signal definitions
 #define SIG_WALK			2
@@ -461,7 +461,6 @@ UnitSpeed(){
 		animSpeed = (get CURRENT_SPEED);
 		if (animSpeed<1) animSpeed=1;
 		animSpeed = (maxSpeed * 3) / animSpeed;
-		//get PRINT(maxSpeed, animFramesPerKeyframe, animSpeed); //how to print debug info from bos
 		if (animSpeed<2) animSpeed=2;
 		if (animspeed>6) animSpeed = 6;
 		sleep 98;
@@ -470,7 +469,7 @@ UnitSpeed(){
 StartMoving(){
 	bMoving=TRUE;
 	signal SIG_WALK;
-  set-signal-mask SIG_WALK;
+	set-signal-mask SIG_WALK;
 	start-script UnitSpeed();
 	start-script Walk();
 }
@@ -480,14 +479,11 @@ StopMoving(){
 	call-script StopWalking();
 }
 
-
-
 Steering(heading)
 {
 	while( 1 )
 	{
 		heading = get HEADING;
-
 
 		if ( heading < oldheading )	bSteering=TRUE;
 		if ( heading > oldheading )	bSteering=TRUE;
@@ -497,7 +493,6 @@ Steering(heading)
 		oldheading = heading;
 	}
 }
-
 
 #define BASEPIECE base
 #define HITSPEED <35.0>
@@ -522,7 +517,6 @@ Create()
 	bMoving = FALSE;
 	bAiming = FALSE;
 	bSteering = FALSE;
-	Static_Var_3 = 1;
 	oldHeading = get HEADING;
 	animSpeed = 3;
 	start-script Steering();
@@ -532,7 +526,6 @@ Create()
 	turn rbhip to y-axis <54> now;
 	speedmult = 70;
 }
-
 
 SweetSpot(piecenum)
 {
@@ -552,6 +545,7 @@ ExecuteRestoreAfterDelay()
 	wpn1_lasthead = 1000000;
 	bAiming = FALSE;
 }
+
 SetStunned(State)
 {
     Stunned = State;
@@ -559,6 +553,7 @@ SetStunned(State)
 	    start-script ExecuteRestoreAfterDelay();
 	}
 }
+
 RestoreAfterDelay()
 {
 	set-signal-mask SIG_AIM;
@@ -594,22 +589,14 @@ AimPrimary(heading, pitch)
 }
 
 FirePrimary()
-{
-	
+{	
 	emit-sfx 1024 + 0 from flare;
 	sleep 1;
 	move barrel to z-axis [-10] speed [25];
 	move sleeve to z-axis [-0.5] speed [12];
-	//turn body to x-axis <-20> speed <30>;
-	//turn base to x-axis <-5> speed <5>;
 	sleep 751;
-	
-	//turn body to x-axis <0> speed <10>;
 	move sleeve to z-axis [0] speed [0.5];
-
-	//turn base to x-axis <0> speed <5>;
 	move barrel to z-axis [0.000000] speed [4.000000];
-	
 }
 
 Killed(severity, corpsetype)
@@ -624,18 +611,9 @@ Killed(severity, corpsetype)
 		explode turret type BITMAPONLY | NOHEATCLOUD;
 		explode sleeve type BITMAPONLY | NOHEATCLOUD;
 		explode barrel type BITMAPONLY | NOHEATCLOUD;
-		//explode flare type BITMAPONLY | NOHEATCLOUD;
-		//explode lbthigh type BITMAPONLY | NOHEATCLOUD;
-		//explode lbleg type BITMAPONLY | NOHEATCLOUD;
-		//explode lbankle type BITMAPONLY | NOHEATCLOUD;
-		//explode lfthigh type BITMAPONLY | NOHEATCLOUD;
-		//explode lfleg type BITMAPONLY | NOHEATCLOUD;
-		//explode lffoot type BITMAPONLY | NOHEATCLOUD;
-		//explode rbthigh type BITMAPONLY | NOHEATCLOUD;
-		//explode rbleg type BITMAPONLY | NOHEATCLOUD;
-		//explode rbankle type BITMAPONLY | NOHEATCLOUD;
 		return(corpsetype);
 	}
+
 	if( severity <= 50 )
 	{
 		corpsetype = 2 ;
@@ -646,18 +624,9 @@ Killed(severity, corpsetype)
 		explode turret type FIRE | SMOKE | FALL | NOHEATCLOUD;
 		explode sleeve type FIRE | SMOKE | FALL | NOHEATCLOUD;
 		explode barrel type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode flare type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lbthigh type FALL | NOHEATCLOUD;
-		//explode lbleg type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lbankle type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfthigh type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfleg type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lffoot type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode rbthigh type FALL | NOHEATCLOUD;
-		//explode rbleg type FALL | NOHEATCLOUD;
-		//explode rbankle type FIRE | SMOKE | FALL | NOHEATCLOUD;
 		return(corpsetype);
 	}
+
 	if( severity <= 99 )
 	{
 		corpsetype = 3 ;
@@ -668,18 +637,9 @@ Killed(severity, corpsetype)
 		explode turret type EXPLODE_ON_HIT | SMOKE | FALL | NOHEATCLOUD;
 		explode sleeve type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
 		explode barrel type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode flare type SMOKE | FALL | NOHEATCLOUD;
-		//explode lbthigh type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lbleg type SMOKE | FALL | NOHEATCLOUD;
-		//explode lbankle type EXPLODE_ON_HIT | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfthigh type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfleg type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lffoot type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode rbthigh type FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode rbleg type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode rbankle type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
 		return(corpsetype);
 	}
+
 	corpsetype = 3 ;
 		explode base type BITMAPONLY | NOHEATCLOUD;
 		explode rfthigh type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
@@ -688,15 +648,5 @@ Killed(severity, corpsetype)
 		explode turret type EXPLODE_ON_HIT | FIRE | FALL | NOHEATCLOUD;
 		explode sleeve type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
 		explode barrel type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode flare type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lbthigh type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lbleg type EXPLODE_ON_HIT | FIRE | FALL | NOHEATCLOUD;
-		//explode lbankle type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfthigh type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode lfleg type EXPLODE_ON_HIT | FIRE | FALL | NOHEATCLOUD;
-		//explode lffoot type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
-		//explode rbthigh type EXPLODE_ON_HIT | FIRE | FALL | NOHEATCLOUD;
-		//explode rbleg type EXPLODE_ON_HIT | FIRE | FALL | NOHEATCLOUD;
-		//explode rbankle type EXPLODE_ON_HIT | FIRE | SMOKE | FALL | NOHEATCLOUD;
 	return corpsetype;
 }
