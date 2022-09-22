@@ -5,11 +5,13 @@
 
 piece  base, turret, flare, barrel, sleeve, rfhip, rfthigh, rfleg, rffoot, lfhip, lfthigh, lfleg, lffoot, lbhip, lbthigh, lbleg, lbankle, rbhip, rbthigh, rbleg, rbankle, aimx1, aimy1;
 
-static-var  bMoving, bAiming, oldHeading, bSteering, wpn1_lasthead, speedmult;
+static-var  bMoving, oldHeading, bSteering, wpn1_lasthead, speedmult, trajectoryMode;
 
-// Signal definitions
 #define SIG_WALK			2
 #define SIG_AIM				4
+
+#define LOW_TRAJECTORY		0
+#define HIGH_TRAJECTORY		1
 
 // Generated for N:\animations\armvang_anim_walk_2legs_v2.blend
 // Using https://github.com/Beherith/Skeletor_S3O
@@ -466,6 +468,7 @@ UnitSpeed(){
 		sleep 98;
 	}
 }
+
 StartMoving(){
 	bMoving=TRUE;
 	signal SIG_WALK;
@@ -473,6 +476,7 @@ StartMoving(){
 	start-script UnitSpeed();
 	start-script Walk();
 }
+
 StopMoving(){
 	signal SIG_WALK;
 	bMoving = FALSE;
@@ -515,7 +519,6 @@ Create()
 	hide flare;
 	dont-cache flare;
 	bMoving = FALSE;
-	bAiming = FALSE;
 	bSteering = FALSE;
 	oldHeading = get HEADING;
 	animSpeed = 3;
@@ -527,6 +530,23 @@ Create()
 	speedmult = 70;
 }
 
+RequestState(requestedState)
+{
+	trajectoryMode = requestedstate;
+}
+
+Activate()
+{
+	signal SIG_AIM;
+	start-script RequestState(HIGH_TRAJECTORY);
+}
+
+Deactivate()
+{
+	signal SIG_AIM;
+	start-script RequestState(LOW_TRAJECTORY);
+}
+
 SweetSpot(piecenum)
 {
 	piecenum = base;
@@ -535,15 +555,16 @@ SweetSpot(piecenum)
 static-var  Stunned;
 ExecuteRestoreAfterDelay()
 {
-    if (Stunned) {
+    if (Stunned)
+	{
         return (1);
     }
+	set-signal-mask 0;
 	turn aimy1 to y-axis <0.000000> speed <36.000000>;
 	turn aimx1 to x-axis <0.000000> speed <30.000000>;
 	wait-for-turn aimy1 around y-axis;
 	wait-for-turn aimx1 around x-axis;
 	wpn1_lasthead = 1000000;
-	bAiming = FALSE;
 }
 
 SetStunned(State)
@@ -561,6 +582,33 @@ RestoreAfterDelay()
 	start-script ExecuteRestoreAfterDelay();
 }
 
+aimCommon(heading, pitch)
+{
+	turn aimy1 to y-axis heading speed <30.000000>;
+	turn aimx1 to x-axis <0.000000> - pitch speed <45.000000>;
+
+	if (((get ABS(wpn1_lasthead - heading)) > 65536) OR(((get ABS(wpn1_lasthead - heading)) > <2>) AND ((get ABS(wpn1_lasthead - heading)) < 65536 - <2>)))
+	{
+
+		wpn1_lasthead = 1000000;
+		wait-for-turn aimy1 around y-axis;
+		wait-for-turn aimx1 around x-axis;
+	}
+
+	wpn1_lasthead = heading;
+}
+
+fireCommon()
+{
+	emit-sfx 1024 + 0 from flare;
+	sleep 1;
+	move barrel to z-axis [-10] speed [25];
+	move sleeve to z-axis [-0.5] speed [12];
+	sleep 751;
+	move sleeve to z-axis [0] speed [0.5];
+	move barrel to z-axis [0.000000] speed [4.000000];
+}
+
 AimFromPrimary(piecenum)
 {
 	piecenum = turret;
@@ -573,30 +621,68 @@ QueryPrimary(piecenum)
 
 AimPrimary(heading, pitch)
 {
-	bAiming = TRUE;
-	signal SIG_AIM;
-	turn aimy1 to y-axis heading speed <30.000000>;
-	turn aimx1 to x-axis <0.000000> - pitch speed <45.000000>;
-	if (((get ABS(wpn1_lasthead - heading)) > 65536) OR(((get ABS(wpn1_lasthead - heading)) > <2>) AND ((get ABS(wpn1_lasthead - heading)) < 65536 - <2>)))
+	if(trajectoryMode != LOW_TRAJECTORY)
 	{
-		wpn1_lasthead = 1000000;
-		wait-for-turn aimy1 around y-axis;
-		wait-for-turn aimx1 around x-axis;
+		return(0);
 	}
-	wpn1_lasthead = heading;
+
+	signal SIG_AIM;
+
+	call-script aimCommon(heading, pitch);
 	start-script RestoreAfterDelay();
+
+	// Prevent low-trajectory "bonus shots" while high-trajectory is reloading
+	var reloading;
+	reloading = (get GAME_FRAME) < (get WEAPON_RELOADSTATE(2));
+	if( reloading )
+	{
+		return(0);
+	}
+
 	return (1);
 }
 
 FirePrimary()
+{
+	call-script fireCommon();
+}
+
+AimFromSecondary(piecenum)
+{
+	piecenum = turret;
+}
+
+QuerySecondary(piecenum)
+{
+	piecenum = flare;
+}
+
+AimSecondary(heading, pitch)
+{
+	if(trajectoryMode != HIGH_TRAJECTORY)
+	{
+		return(0);
+	}
+
+	signal SIG_AIM;
+
+	call-script aimCommon(heading, pitch);
+	start-script RestoreAfterDelay();
+
+	// Prevent high-trajectory "bonus shots" while low-trajectory is reloading
+	var reloading;
+	reloading = (get GAME_FRAME) < (get WEAPON_RELOADSTATE(1));
+	if( reloading )
+	{
+		return(0);
+	}
+
+	return (1);
+}
+
+FireSecondary()
 {	
-	emit-sfx 1024 + 0 from flare;
-	sleep 1;
-	move barrel to z-axis [-10] speed [25];
-	move sleeve to z-axis [-0.5] speed [12];
-	sleep 751;
-	move sleeve to z-axis [0] speed [0.5];
-	move barrel to z-axis [0.000000] speed [4.000000];
+	call-script fireCommon();
 }
 
 Killed(severity, corpsetype)
